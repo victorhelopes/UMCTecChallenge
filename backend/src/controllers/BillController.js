@@ -1,9 +1,27 @@
 const connection = require('../database/connection');
 
 module.exports ={
-    async create(req, res){
-        await connection('bill').insert()
+    async create(request, response){
+        const { type, total, patientId} = request.body;
 
-        return res.json( { message : " Bill registered" } )
+        const result = await connection('patient').where('id', patientId ).select('*')
+
+        if( result == 0 ){
+            return response.json( { message : " Pacient was not found" } )
+        }
+
+        await connection('bill').insert({
+            type, 
+            total, 
+            patientId
+        })
+
+        return response.json( { message : "Bill registred"} )
+    },
+
+    async get(request, response){
+        const bills = await connection('bill').select('*')
+
+        return response.json(  bills )
     }
 }

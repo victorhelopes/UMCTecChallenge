@@ -1,8 +1,11 @@
 
 exports.up = function(knex) {
     return knex.schema.createTable('patient', function(table){
-        table.integer('id');
+        table.increments('id');
         table.string('name').notNullable();
+
+        table.integer('healthInsurance');
+        table.foreign('healthInsurance').references('id').inTable('healthInsurance')
     });
 };
 

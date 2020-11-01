@@ -10,21 +10,29 @@ const VisitController = require('./controllers/VisitController');
 const routes = express.Router();
 
 //Activity
-routes.post('/',ActivityController.create);
+routes.get('/GetActivity',ActivityController.get);
+routes.post('/CreateActivity',ActivityController.create);
 
 //Card
-routes.post('/',CardController.create);
+routes.get('/GetCard',CardController.get);
+routes.post('/CreateCard',CardController.create);
+routes.delete('/DeleteCard/:id',CardController.delete);
 
 //HealthInsurance
-routes.post('/',HealthInsuranceController.create);
+routes.post('/CreateHealthInsurance',HealthInsuranceController.create);
+routes.get('/GetHealthInsurance',HealthInsuranceController.get);
 
 //Patient
-routes.post('/',PatientController.create);
+routes.get('/Patients',PatientController.get);
+routes.post('/CreatePatient',PatientController.create);
+routes.delete('/DeletePatient/:id',PatientController.delete);
 
 //Bill
-routes.post('/',BillController.create);
+routes.post('/CreateBill',BillController.create);
+routes.get('/GetBill',BillController.get);
 
 //Visit
-routes.post('/',VisitController.create);
+routes.post('/CreateVisit',VisitController.create);
+routes.get('/GetVisit',VisitController.get);
 
 module.exports = routes; 

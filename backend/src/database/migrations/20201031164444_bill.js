@@ -2,7 +2,11 @@
 exports.up = function(knex) {
     return knex.schema.createTable('bill',function(table){
         table.increments('id');
-        table.enu('column',['HOSPITALAR', 'AMBULATORIAL']).notNullable();
+        table.enu('type',['HOSPITALAR', 'AMBULATORIAL']).notNullable();
+        table.integer('total').notNullable()
+
+        table.integer('patientId').notNullable();
+        table.foreign('patientId').references('id').inTable('patient');
     })
 };
 

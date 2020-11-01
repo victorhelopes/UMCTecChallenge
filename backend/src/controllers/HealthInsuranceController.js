@@ -1,13 +1,19 @@
 const connection = require('../database/connection');
 
 module.exports = {
-    async create(req,res){
-        const { name } = req.body;
+    async get(request, response){
+        const healthInsurances = await connection('healthInsurance').select("*");
+
+        return response.json( healthInsurances )
+    },
+
+    async create(request,response){
+        const { name } = request.body;
 
         const healthInsurance = await connection('healthInsurance').insert({
             name
         })
 
-        return res.json( healthInsurance )
+        return response.json( healthInsurance )
     }
 }
