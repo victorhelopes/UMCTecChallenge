@@ -5,8 +5,8 @@ exports.up = function(knex) {
         table.date('checkIn').notNullable();
         table.integer('numberOfPendencies').notNullable();
         table.integer('numberOfOpenPendencies').notNullable();
-        table.integer('numberOfDocuments').notNullable();
         table.integer('numberOfNotReceivedDocuments').notNullable();
+        table.integer('numberOfDocuments').notNullable();
         table.integer('numberOfChecklistItem').notNullable();
         table.integer('numberOfDoneChecklistItem').notNullable();
         

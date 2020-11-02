@@ -7,6 +7,9 @@ exports.up = function(knex) {
 
         table.integer('patientId').notNullable();
         table.foreign('patientId').references('id').inTable('patient');
+
+        table.integer('activityId').notNullable();
+        table.foreign('activityId').references('id').inTable('activity');
     })
 };
 

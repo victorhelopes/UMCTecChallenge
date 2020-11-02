@@ -1,5 +1,47 @@
 const connection = require('../database/connection');
 
+function filterItems(DataCard, activity, q, typeQ,filter){
+    var result = []
+    if(activity != null){
+        DataCard = DataCard.filter(function(DataCard){
+            return (DataCard.activityId) == activity
+        })
+    }
+    
+    if( typeQ != null && q != null){
+        if(typeQ == 'name'){
+            DataCard = DataCard.filter(function(DataCard){  
+                return (DataCard.patientName) == q
+            })
+        }else{
+            if(typeQ == 'visitId' ){
+                DataCard = DataCard.filter(function(DataCard){
+                    return (DataCard.visitId) == q
+                })
+            }else{
+                if(typeQ == 'billId' ){
+                    DataCard = DataCard.filter(function(DataCard){
+                        return (DataCard.billId) == q
+                    })
+                }
+            }
+        }
+    }
+
+    if(filter != null || filter == 'PRIORITY'){
+        if(filter == 'TO_RECEIVE'){
+            DataCard = DataCard.filter(function(DataCard){
+                return (DataCard.numberOfNotReceivedDocuments > 0)
+            })
+        }else{
+            DataCard = DataCard.filter(function(DataCard){
+                return (DataCard.numberOfNotReceivedDocuments == 0 && DataCard.numberOfOpenPendencies == 0 && DataCard.numberOfDoneChecklistItem == DataCard.numberOfChecklistItem)
+            })
+        }
+    }
+
+    return DataCard
+}
 
 function dayDifference(Data){
     const now = new Date(); // Data de hoje
@@ -9,64 +51,116 @@ function dayDifference(Data){
     return day
 }
 
+function setResult( DataCard ){
+    
+    const data = Result
+    const day =  DataCard.checkIn 
+    const days = dayDifference(day) 
+    data.daysSinceCreated = days
 
-module.exports ={
-    async get(req, res){
-        const DataCard = await connection('card').select("*")
-        
-        const result = [{}] 
-        var totalCardsOk = 0
-        var totalCardsWarning = 0
-        var totalCardsDelayed = 0
-
-        for (i = 0; i < DataCard.length; i++){
-            const slaActivity = await connection('activity').select('sla').where('id',DataCard[i].activityId).first()
-            const bills = await connection('bill').where('id',DataCard[i].billId).select('*').first()
-            const healthInsuranceInfos = await connection('healthInsurance').where('id',DataCard[i].healthInsuranceId).select('*').first()
-            const patientInfos = await connection('patient').where('id', DataCard[i].patientId).select('name').first()
-            
-            const day =  DataCard[i].checkIn 
-            const days = dayDifference(day)  
-            result[i].daysSinceCreated = days
-
-            if( days < (slaActivity.sla * 0.75) ){
-                result[i].slaStatus = "OK"
-                totalCardsOk += 1
+    if( days < (DataCard.sla * 0.75) ){
+        data.slaStatus = "OK"
             }else{
-                if(days <= slaActivity.sla * 0.75){
-                    result[i].slaStatus = "WARNING"
-                    totalCardsWarning += 1
+                if(days <= DataCard.sla * 0.75){
+                    data.slaStatus = "WARNING"
                 }else{
-                    result[i].slaStatus = "DELAYED"
-                    totalCardsDelayed += 1
+                    data.slaStatus = "DELAYED"
                 }
             }
             
-            result[i].patient = {
-                patientId: (DataCard[i].patientId),
-                name: (patientInfos.name)
+            data.patient = {
+                patientId: (DataCard.patientId),
+                name: (DataCard.patientName)
             }
 
-            result[i].healthInsurance = {
-                healthInsuranceId : (healthInsuranceInfos.id),
-                name: (healthInsuranceInfos.name)
+            data.healthInsurance = {
+                healthInsuranceId : (DataCard.healthInsuranceId),
+                name: (DataCard.healthInsuranceName)
             }
-            result[i].visitId = DataCard[i].visitId
-            result[i].bill = {
-                billId : (bills.id),
-                billType : (bills.type),
-                totalAmount : (bills.total),
+            data.visitId = DataCard.visitId
+            data.bill = {
+                billId : (DataCard.billId),
+                billType : (DataCard.type),
+                totalAmount : (DataCard.total),
             }
-            result[i].numberOfPendencies = DataCard[i].numberOfPendencies
-            result[i].numberOfOpenPendencies = DataCard[i].numberOfOpenPendencies
-            result[i].numberOfDocuments = DataCard[i].numberOfDocuments
-            result[i].numberOfNotReceivedDocuments = DataCard[i].numberOfNotReceivedDocuments
-            result[i].numberOfChecklistItem = DataCard[i].numberOfChecklistItem
-            result[i].numberOfDoneChecklistItem = DataCard[i].numberOfDoneChecklistItem
-            
+            data.numberOfPendencies = DataCard.numberOfPendencies
+            data.numberOfOpenPendencies = DataCard.numberOfOpenPendencies
+            data.numberOfDocuments = DataCard.numberOfDocuments
+            data.numberOfNotReceivedDocuments = DataCard.numberOfNotReceivedDocuments
+            data.numberOfChecklistItem = DataCard.numberOfChecklistItem
+            data.numberOfDoneChecklistItems = DataCard.numberOfDoneChecklistItems
+        return data
+}
+
+const Result = {
+    daysSinceCreated: String,
+    slaStatus: String,
+    patient:{
+      patientId: Number,
+      name: String
+    },
+    healthInsurance:{
+      healthInsuranceId: Number,
+      name: String
+    },
+    visitId: Number,
+    bill:{
+      billId:Number,
+      billType: String,
+      totalAmount:Number
+    },
+    numberOfPendencies:Number,
+    numberOfOpenPendencies:Number,
+    numberOfDocuments:Number,
+    numberOfNotReceivedDocuments:Number,
+    numberOfChecklistItem:Number,
+    numberOfDoneChecklistItems:Number,
+}
+
+module.exports = {
+    async get(request, res){  
+        let page = request.query.page;
+        let limit = request.query.limit;
+        let activity = request.query.activityId;
+        let q = request.query.q;
+        let typeQ = request.query.typeQ;
+        let filter = request.query.filter
+        
+        var DataCard = await connection("card").
+                           innerJoin('activity', 'activity.id', 'card.activityId').
+                           innerJoin('bill', 'bill.id', 'card.billId').
+                           innerJoin('healthInsurance', 'healthInsurance.id',  'card.healthInsuranceId').
+                           innerJoin('patient', 'patient.id', 'card.patientId').
+                           limit(limit).
+                           offset((page-1) *1).
+                           select('*', 'healthInsurance.name as healthInsuranceName', 'patient.name as patientName')
+
+        
+        DataCard = filterItems(DataCard, activity, q, typeQ,filter)
+        let result = []
+
+        var totalCardsOk = 0
+        var totalCardsWarning = 0
+        var totalCardsDelayed = 0
+        
+        for (i = 0; i < (DataCard.length); i++){  
+            let aux = {}
+            aux = ((setResult(DataCard[i])))
+            result.push(JSON.parse(JSON.stringify(aux)))    
+            if(result[i].slaStatus == "OK"){
+                totalCardsOk += 1
+            }else{
+                if(result[i].slaStatus == "WARNING"){
+                    totalCardsWarning += 1
+                }else{
+                    totalCardsDelayed += 1
+                }
+            }
         }
-        final = {result,totalCardsOk,totalCardsWarning,totalCardsDelayed }
-        return res.json( final )
+
+        final = {result,totalCardsOk,totalCardsWarning,totalCardsDelayed}
+
+        return res.json( result )
     },
 
 

@@ -31,7 +31,7 @@ module.exports = {
         const result = await connection('patient').where('id',id).delete();
 
         if ( result == 0 ){
-            return response.json( { message : "Paciente não existe"} )
+            return response.json( { message : "Pacient not found"} )
         }
 
         return response.json( { message : "Paciente deletado" } )
